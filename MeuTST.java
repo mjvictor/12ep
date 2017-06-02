@@ -17,6 +17,7 @@ import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.In;
 import java.util.Comparator;
+import edu.princeton.cs.algs4.MaxPQ;
 
 /**
  *  The {@code TST} class represents an symbol table of key-value
@@ -218,10 +219,53 @@ public class MeuTST<Value extends Comparable<Value>> {
      */
     // all keys starting with given prefix
     public Iterable<String> keysWithPrefixByValue(String prefix) {
-        return keysWithPrefix(prefix);
+        if (prefix == null) {
+            throw new IllegalArgumentException("calls keysWithPrefixByValue() with null argument");
+        }
+        Queue<String> queue = new Queue<String>();
+        MaxPQ<myNode<Value>> maxpq = new MaxPQ<myNode<Value>>(new myNodeComparator());
+        Node<Value> x = get(root, prefix, 0);
+        if (x == null) return queue;
+        if (x.val != null) {
+            myNode<Value> node = new myNode<Value>();
+            node.key = prefix;
+            node.val = x.val;
+            maxpq.insert(node);
+        }
+        collect(x.mid, new StringBuilder(prefix), maxpq);
+        for (myNode<Value> node : maxpq) {
+            queue.enqueue(node.key);
+        }
+        return queue;
+        //return keysWithPrefix(prefix);
     }
-     
+
+    // all keys in subtrie rooted at x with given prefix
+    private void collect(Node<Value> x, StringBuilder prefix, MaxPQ<myNode<Value>> maxpq) {
+        if (x == null) return;
+        collect(x.left,  prefix, maxpq);
+        if (x.val != null) {
+            myNode<Value> node = new myNode<Value>();
+            node.key = prefix.toString() + x.c;
+            node.val =  x.val;
+            maxpq.insert(node);
+        }
+        collect(x.mid,   prefix.append(x.c), maxpq);
+        prefix.deleteCharAt(prefix.length() - 1);
+        collect(x.right, prefix, maxpq);
+    }
     
+    private class myNode<Value> {
+        Value val;
+        String key;
+    }
+
+    private class myNodeComparator implements Comparator<myNode<Value>> {
+        public int compare (myNode<Value> node1, myNode<Value> node2) {
+            return node1.val.compareTo(node2.val);
+        }
+    } 
+
     // all keys in subtrie rooted at x with given prefix
     private void collect(Node<Value> x, StringBuilder prefix, Queue<String> queue) {
         if (x == null) return;
@@ -275,6 +319,23 @@ public class MeuTST<Value extends Comparable<Value>> {
      */
     public void delete(String key) {
         // TAREFA
+        if (key == null) throw new IllegalArgumentException("argument to delete() is null");
+        if (!contains(key)) return;
+        n--;
+        root = delete(root, key, 0);
+    }
+
+    private Node<Value> delete(Node<Value> node, String key, int d) {
+        //chama o delete até chegar no último char da string
+        if (node == null) return null;
+        char c = key.charAt(d);
+        if (c < node.c) node.left = delete(node.left, key, d);
+        else if (c > node.c) node.right = delete(node.right, key, d);
+        else if (d < key.length() - 1) node.mid = delete(node.mid, key, d+1);
+        //caso seja o ultimo char da key e val != null (que deveria estar) 
+        if (d == key.length() - 1 && node.val != null) node.val = null;
+        if (node.right == null && node.left == null && node.mid == null && node.val == null) node = null;
+        return node;
     }
 
     
